@@ -16,7 +16,8 @@ blogRouter.use("/*", async (c, next) => {
   const { JWT_SECRET } = env<{ JWT_SECRET: string }>(c);
 
   const header = c.req.header("Authorization") || c.req.header("authorization");
-  if (!header?.startsWith("Bearer ")) {
+
+  if (!header?.startsWith("Bearer ") || !header) {
     throw new HTTPException(411, { message: "Invalid authorization token" });
   }
   const token = header?.split(" ")[1];

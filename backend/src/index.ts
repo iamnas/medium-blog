@@ -4,14 +4,18 @@ import { HTTPException } from "hono/http-exception";
 
 import { userRouter } from "./router/user";
 import { blogRouter } from "./router/blogs";
+import { cors } from 'hono/cors';
 
 const app = new Hono();
+
+app.use('/*', cors());
 
 app.get("/", (c) => {
   return c.json({
     message: "Hello ",
   });
 });
+
 
 app.route('/api/v1/user',userRouter)
 app.route('/api/v1/blog',blogRouter)

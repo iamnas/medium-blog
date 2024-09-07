@@ -11,28 +11,45 @@ export const signUp = async (
   password: string,
   JWT_SECRET: string
 ) => {
-  const prisma = new PrismaClient({
-    datasources: {
-      db: {
-        url: DATABASE_URL,
+  try {
+    const prisma = new PrismaClient({
+      datasources: {
+        db: {
+          url: DATABASE_URL,
+        },
       },
-    },
-  }).$extends(withAccelerate());
+    }).$extends(withAccelerate());
 
-  const user = await prisma.user.create({
-    data: {
-      email,
-      name,
-      password,
-    },
-  });
+    const user = await prisma.user.create({
+      data: {
+        email,
+        name,
+        password,
+      },
+    });
 
-  const payload = {
-    id: user.id,
-  };
-  const token = await sign(payload, JWT_SECRET);
+    const payload = {
+      id: user.id,
+    };
+    const token = await sign(payload, JWT_SECRET);
 
-  return token;
+    return token;
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientValidationError) {
+      throw new HTTPException(411, {
+        message: error.message,
+      });
+    }
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      throw new HTTPException(411, {
+        message: "mail is already there",
+      });
+    }
+
+    throw new HTTPException(404, {
+      message: "Somethig went wrong please try again later",
+    });
+  }
 };
 
 export const signIn = async (
@@ -97,8 +114,8 @@ export const updateBlogs = async (
   DATABASE_URL: string,
   id: string,
   blogId: string,
-  title?: string ,
-  content?: string 
+  title?: string,
+  content?: string
 ) => {
   const prisma = new PrismaClient({
     datasources: {
@@ -122,8 +139,6 @@ export const updateBlogs = async (
 
     return blog;
   } catch (error) {
-    console.log(error);
-
     if (error instanceof Prisma.PrismaClientValidationError) {
       throw new HTTPException(411, {
         message: error.message,
@@ -134,8 +149,7 @@ export const updateBlogs = async (
         message: "Invalid User ID",
       });
     }
-    // console.log("error.message",error.code,error.message);
-    // console.log("error**************************",error);
+
     throw new HTTPException(404, {
       message: "Somethig went wrong please try again later",
     });
@@ -153,6 +167,17 @@ export const getBlogs = async (DATABASE_URL: string, id: string) => {
 
   const blog = await prisma.post.findUnique({
     where: { id: id },
+    select: {
+      title: true,
+      content: true,
+      id: true,
+      createdAt: true,
+      author: {
+        select: {
+          name: true,
+        },
+      },
+    },
   });
 
   return blog;
@@ -167,7 +192,19 @@ export const getAllBlog = async (DATABASE_URL: string) => {
     },
   }).$extends(withAccelerate());
 
-  const blog = await prisma.post.findMany({});
+  const blog = await prisma.post.findMany({
+    select: {
+      content: true,
+      title: true,
+      id: true,
+      createdAt: true,
+      author: {
+        select: {
+          name: true,
+        },
+      },
+    },
+  });
 
   return blog;
 };
